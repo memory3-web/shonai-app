@@ -102,14 +102,14 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                     value={entry.pickup || ''}
                     onChange={(e) => handleChange(vehicleId, slotIndex, 'pickup', e.target.value)}
                 >
-                    <option value="" className="text-gray-500">選択...</option>
+                    <option value="" className="text-gray-500">...</option>
                     {PICKUP_LOCATIONS.map(loc => (
                         <option key={loc} value={loc} className="text-gray-900">{loc}</option>
                     ))}
                 </select>
                 <input
                     type="text"
-                    placeholder="概要"
+                    placeholder=""
                     className="border border-gray-300 rounded p-1 text-sm w-full text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
                     value={entry.delivery || ''}
                     onChange={(e) => {
@@ -154,14 +154,14 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                                                     value={entry.pickup || ''}
                                                     onChange={(e) => handleChange(vehicleId, slotIndex, 'pickup', e.target.value)}
                                                 >
-                                                    <option value="" className="text-gray-500">選択...</option>
+                                                    <option value="" className="text-gray-500">...</option>
                                                     {PICKUP_LOCATIONS.map(loc => (
                                                         <option key={loc} value={loc} className="text-gray-900">{loc}</option>
                                                     ))}
                                                 </select>
                                                 <input
                                                     type="text"
-                                                    placeholder="概要"
+                                                    placeholder=""
                                                     className="border border-gray-300 rounded p-0 px-1 text-[10px] h-6 w-full text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-blue-500 outline-none"
                                                     value={entry.delivery || ''}
                                                     onChange={(e) => {
