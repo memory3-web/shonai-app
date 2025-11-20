@@ -31,11 +31,27 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        const shipment = await prisma.shipment.create({
-            data: {
+        // Use upsert to handle both create and update safely
+        const shipment = await prisma.shipment.upsert({
+            where: {
+                date_columnIndex_category: {
+                    date,
+                    columnIndex,
+                    category,
+                },
+            },
+            update: {
+                // Only update fields that are present in the body
+                ...(trailer !== undefined && { trailer }),
+                ...(time !== undefined && { time }),
+                ...(destination !== undefined && { destination }),
+                ...(cargo !== undefined && { cargo }),
+                ...(remarks !== undefined && { remarks }),
+            },
+            create: {
                 date,
                 columnIndex,
-                trailer,
+                trailer: trailer || '', // Default to empty if not provided
                 time,
                 destination,
                 cargo,
@@ -43,10 +59,11 @@ export async function POST(request: NextRequest) {
                 category,
             },
         });
+
         return NextResponse.json(shipment);
     } catch (error) {
         console.error(error);
-        return NextResponse.json({ error: 'Failed to create shipment' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to save shipment' }, { status: 500 });
     }
 }
 

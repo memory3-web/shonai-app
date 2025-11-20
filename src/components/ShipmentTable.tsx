@@ -49,6 +49,10 @@ export default function ShipmentTable({ date }: ShipmentTableProps) {
     const [variableTrailers, setVariableTrailers] = useState<string[]>(["", ""]);
 
     useEffect(() => {
+        // Clear state immediately when date changes to prevent showing old data
+        setShipments([]);
+        setVariableTrailers(["", ""]);
+        setDailyInfo({ date, loadingPerson: '' });
         fetchData();
     }, [date]);
 
@@ -81,40 +85,55 @@ export default function ShipmentTable({ date }: ShipmentTableProps) {
         }
     };
 
-    const handleShipmentUpdate = async (columnIndex: number, field: keyof Shipment, value: string) => {
-        // Find existing shipment for this column or create a placeholder
-        const existing = shipments.find(s => s.columnIndex === columnIndex && s.category === 'Iron');
+    // Handle local state update (for typing)
+    const handleLocalUpdate = (columnIndex: number, field: keyof Shipment, value: string) => {
+        setShipments(prev => {
+            const newShipments = [...prev];
+            const existingIndex = newShipments.findIndex(s => s.columnIndex === columnIndex && s.category === 'Iron');
 
-        // Optimistic update
-        let updatedShipments = [...shipments];
-        // We need to know the index of the item we are updating to replace it later with API response
-        let updateIndex = -1;
+            if (existingIndex !== -1) {
+                newShipments[existingIndex] = { ...newShipments[existingIndex], [field]: value };
+            } else {
+                // Create a temporary placeholder
+                newShipments.push({
+                    id: -1,
+                    date,
+                    columnIndex,
+                    trailer: columnIndex < 4 ? FIXED_COLUMNS[columnIndex] : (columnIndex === 4 ? variableTrailers[0] : variableTrailers[1]),
+                    time: null,
+                    destination: null,
+                    cargo: null,
+                    remarks: null,
+                    category: 'Iron',
+                    [field]: value
+                } as Shipment);
+            }
+            return newShipments;
+        });
 
-        if (existing) {
-            updateIndex = shipments.findIndex(s => s.id === existing.id);
-            updatedShipments[updateIndex] = { ...existing, [field]: value };
-        } else {
-            // Create a new temporary object
-            const newShipment: Shipment = {
-                id: -1, // Temp ID
-                date,
-                columnIndex,
-                trailer: field === 'trailer' ? value : (columnIndex < 4 ? FIXED_COLUMNS[columnIndex] : variableTrailers[columnIndex - 4]),
-                time: field === 'time' ? value : null,
-                destination: field === 'destination' ? value : null,
-                cargo: field === 'cargo' ? value : null,
-                remarks: field === 'remarks' ? value : null,
-                category: 'Iron'
-            };
-            updatedShipments.push(newShipment);
-            updateIndex = updatedShipments.length - 1;
-        }
-        setShipments(updatedShipments);
-
-        // If it's a variable column trailer change, update local state too
+        // For variable trailer selection, we must save immediately because it affects the column header
         if (field === 'trailer') {
             if (columnIndex === 4) setVariableTrailers([value, variableTrailers[1]]);
             if (columnIndex === 5) setVariableTrailers([variableTrailers[0], value]);
+            saveShipment(columnIndex, field, value);
+        }
+    };
+
+    // Save to server (onBlur or specific events)
+    const saveShipment = async (columnIndex: number, field: keyof Shipment, value: string) => {
+        const shipment = shipments.find(s => s.columnIndex === columnIndex && s.category === 'Iron');
+
+        // Calculate trailer name
+        let trailerName = "";
+        if (columnIndex < 4) {
+            trailerName = FIXED_COLUMNS[columnIndex];
+        } else {
+            // If we are saving the trailer itself, use the value. Otherwise use current state.
+            if (field === 'trailer') {
+                trailerName = value;
+            } else {
+                trailerName = columnIndex === 4 ? variableTrailers[0] : variableTrailers[1];
+            }
         }
 
         try {
@@ -122,52 +141,32 @@ export default function ShipmentTable({ date }: ShipmentTableProps) {
                 date,
                 columnIndex,
                 category: 'Iron',
-                trailer: field === 'trailer' ? value : (existing?.trailer || (columnIndex < 4 ? FIXED_COLUMNS[columnIndex] : variableTrailers[columnIndex - 4])),
-                time: field === 'time' ? value : existing?.time,
-                destination: field === 'destination' ? value : existing?.destination,
-                cargo: field === 'cargo' ? value : existing?.cargo,
-                remarks: field === 'remarks' ? value : existing?.remarks,
+                trailer: trailerName,
+                [field]: value
             };
 
-            let response;
-            // If updating an existing record (and it has a real ID)
-            if (existing && existing.id !== -1) {
-                response = await fetch('/api/shipments', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: existing.id, [field]: value }),
-                });
-            } else {
-                // Create new
-                response = await fetch('/api/shipments', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-            }
+            // Always use POST (Upsert)
+            const response = await fetch('/api/shipments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
 
             if (response.ok) {
                 const savedShipment = await response.json();
-                // Update the local state with the real ID and data from server
                 setShipments(prev => {
                     const newPrev = [...prev];
-                    // We need to find the item again because state might have changed (other concurrent edits?)
-                    // But for this user, it's likely fine to use the index or find by temp ID/column
                     const idx = newPrev.findIndex(s => s.columnIndex === columnIndex && s.category === 'Iron');
                     if (idx !== -1) {
                         newPrev[idx] = savedShipment;
                     } else {
-                        // Should not happen if we pushed it
                         newPrev.push(savedShipment);
                     }
                     return newPrev;
                 });
             }
-
-            // Do NOT call fetchData() here to avoid overwriting user input during typing
-
         } catch (error) {
-            console.error('Failed to update shipment', error);
+            console.error('Failed to save shipment', error);
         }
     };
 
@@ -196,7 +195,8 @@ export default function ShipmentTable({ date }: ShipmentTableProps) {
                     className="w-full h-full px-1 border-none focus:ring-2 focus:ring-blue-500 focus:outline-none text-center text-sm md:text-base font-medium text-black placeholder-gray-400"
                     value={value}
                     placeholder={placeholder}
-                    onChange={(e) => handleShipmentUpdate(columnIndex, field, e.target.value)}
+                    onChange={(e) => handleLocalUpdate(columnIndex, field, e.target.value)}
+                    onBlur={(e) => saveShipment(columnIndex, field, e.target.value)}
                 />
             </td>
         );
@@ -219,7 +219,7 @@ export default function ShipmentTable({ date }: ShipmentTableProps) {
                                         <select
                                             className="w-full bg-transparent font-bold text-center p-1 md:p-2 text-sm md:text-base text-black focus:outline-none"
                                             value={variableTrailers[i]}
-                                            onChange={(e) => handleShipmentUpdate(4 + i, 'trailer', e.target.value)}
+                                            onChange={(e) => handleLocalUpdate(4 + i, 'trailer', e.target.value)}
                                         >
                                             <option value="">(選択)</option>
                                             {VARIABLE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
