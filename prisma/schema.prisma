@@ -6,9 +6,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
+
 
 model DispatchEntry {
   id        Int      @id @default(autoincrement())
@@ -20,4 +21,35 @@ model DispatchEntry {
   updatedAt DateTime @updatedAt
 
   @@unique([date, vehicleId, slotIndex])
+}
+
+model Absentee {
+  id        Int      @id @default(autoincrement())
+  date      String   // YYYY-MM-DD
+  name      String
+  createdAt DateTime @default(now())
+}
+
+model Shipment {
+  id          Int      @id @default(autoincrement())
+  date        String   // YYYY-MM-DD
+  columnIndex Int      // 0-5 (0:DiaMaru, 1:DiaKami, 2:Hashi, 3:Izumi, 4:Var1, 5:Var2)
+  trailer     String   // For variable columns, this stores the selected trailer name
+  time        String?  // Time or "代納"
+  destination String?  // 朝日, トピー, etc.
+  cargo       String?  // ヘビー, 新断, etc.
+  remarks     String?
+  category    String   // "Iron"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([date, columnIndex, category])
+}
+
+model DailyYardInfo {
+  id            Int      @id @default(autoincrement())
+  date          String   @unique // YYYY-MM-DD
+  loadingPerson String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

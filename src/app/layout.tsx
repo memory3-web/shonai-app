@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "配車帳",
+  title: "庄内GoGo",
   description: "社内用配車管理アプリ",
 };
 
@@ -19,7 +19,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <header className="bg-blue-600 text-white p-4 shadow-md">
           <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold">配車帳</h1>
+            <h1 className="text-xl font-bold">庄内GoGo</h1>
             <span className="text-sm">Ver 1.0</span>
           </div>
         </header>

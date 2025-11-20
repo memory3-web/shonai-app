@@ -101,7 +101,7 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                     list="pickup-locations"
                     type="text"
                     placeholder="..."
-                    className="border border-gray-300 rounded p-1 text-sm w-full bg-blue-50 text-gray-900 font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="border border-gray-300 rounded p-1 text-sm w-full bg-blue-50 text-black font-bold focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-500"
                     value={entry.pickup || ''}
                     onChange={(e) => handleChange(vehicleId, slotIndex, 'pickup', e.target.value)}
                     onBlur={() => handleBlur(vehicleId, slotIndex)}
@@ -109,7 +109,7 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                 <input
                     type="text"
                     placeholder=""
-                    className="border border-gray-300 rounded p-1 text-sm w-full text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="border border-gray-300 rounded p-1 text-sm w-full text-black font-medium placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
                     value={entry.delivery || ''}
                     onChange={(e) => {
                         const val = e.target.value;
@@ -152,7 +152,7 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                                                     list="pickup-locations"
                                                     type="text"
                                                     placeholder="..."
-                                                    className="border border-gray-300 rounded p-0 text-xs h-7 w-full bg-blue-50 text-gray-900 font-bold focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="border border-gray-300 rounded p-0 text-xs h-7 w-full bg-blue-50 text-black font-bold focus:ring-1 focus:ring-blue-500 outline-none placeholder-gray-500"
                                                     value={entry.pickup || ''}
                                                     onChange={(e) => handleChange(vehicleId, slotIndex, 'pickup', e.target.value)}
                                                     onBlur={() => handleBlur(vehicleId, slotIndex)}
@@ -160,7 +160,7 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                                                 <input
                                                     type="text"
                                                     placeholder=""
-                                                    className="border border-gray-300 rounded p-0 px-1 text-[10px] h-6 w-full text-gray-900 placeholder-gray-400 focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    className="border border-gray-300 rounded p-0 px-1 text-[10px] h-6 w-full text-black font-medium placeholder-gray-500 focus:ring-1 focus:ring-blue-500 outline-none"
                                                     value={entry.delivery || ''}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
@@ -186,16 +186,16 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                 <table className="min-w-full border-collapse">
                     <thead>
                         <tr className="bg-gray-100 border-b">
-                            <th className="p-3 text-left w-24 border-r sticky left-0 bg-gray-100 z-10 text-gray-700 font-semibold">車両</th>
-                            <th className="p-3 text-left border-r text-gray-700 font-semibold min-w-[200px]">案件1</th>
-                            <th className="p-3 text-left border-r text-gray-700 font-semibold min-w-[200px]">案件2</th>
-                            <th className="p-3 text-left text-gray-700 font-semibold min-w-[200px]">案件3</th>
+                            <th className="p-3 text-left w-24 border-r sticky left-0 bg-gray-100 z-10 text-black font-bold">車両</th>
+                            <th className="p-3 text-left border-r text-black font-bold min-w-[200px]">案件1</th>
+                            <th className="p-3 text-left border-r text-black font-bold min-w-[200px]">案件2</th>
+                            <th className="p-3 text-left text-black font-bold min-w-[200px]">案件3</th>
                         </tr>
                     </thead>
                     <tbody>
                         {VEHICLES.map(vehicleId => (
                             <tr key={vehicleId} className="border-b hover:bg-gray-50">
-                                <td className="p-3 font-bold border-r sticky left-0 bg-white z-10 text-center text-gray-900 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                <td className="p-3 font-bold border-r sticky left-0 bg-white z-10 text-center text-black shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                     {vehicleId}
                                 </td>
                                 {[0, 1, 2].map(slotIndex => (
