@@ -14,10 +14,40 @@ export default function Home() {
     const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [absentees, setAbsentees] = useState<Absentee[]>([]);
     const [newAbsenteeName, setNewAbsenteeName] = useState('');
+    const [remark, setRemark] = useState('');
+    const [savingRemark, setSavingRemark] = useState(false);
 
     useEffect(() => {
         fetchAbsentees();
+        fetchRemark();
     }, [date]);
+
+    const fetchRemark = async () => {
+        try {
+            const res = await fetch(`/api/remarks?date=${date}`);
+            if (res.ok) {
+                const data = await res.json();
+                setRemark(data.content || '');
+            }
+        } catch (error) {
+            console.error('Failed to fetch remark', error);
+        }
+    };
+
+    const saveRemark = async () => {
+        setSavingRemark(true);
+        try {
+            await fetch('/api/remarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date, content: remark }),
+            });
+        } catch (error) {
+            console.error('Failed to save remark', error);
+        } finally {
+            setSavingRemark(false);
+        }
+    };
 
     const fetchAbsentees = async () => {
         try {
@@ -98,6 +128,20 @@ export default function Home() {
                 ) : (
                     <p className="text-gray-500 text-center py-4">欠席者はいません</p>
                 )}
+            </div>
+
+            <div className="w-full max-w-2xl bg-white rounded-xl shadow-md p-6 mt-6">
+                <h2 className="text-2xl font-bold text-gray-700 mb-4">連絡事項</h2>
+                <textarea
+                    className="w-full h-32 border border-gray-300 rounded-lg p-4 text-black font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="連絡事項を入力してください..."
+                    value={remark}
+                    onChange={(e) => setRemark(e.target.value)}
+                    onBlur={saveRemark}
+                />
+                <div className="text-right mt-2 text-sm text-gray-400">
+                    {savingRemark ? "保存中..." : "自動保存されます"}
+                </div>
             </div>
         </div>
     );

@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -52,4 +52,23 @@ model DailyYardInfo {
   loadingPerson String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model DailyDriver {
+  id        Int      @id @default(autoincrement())
+  date      String   // YYYY-MM-DD
+  vehicleId String
+  driverName String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, vehicleId])
+}
+
+model DailyRemark {
+  id        Int      @id @default(autoincrement())
+  date      String   @unique // YYYY-MM-DD
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

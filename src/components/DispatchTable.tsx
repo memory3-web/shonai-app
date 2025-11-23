@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { VEHICLES, PICKUP_LOCATIONS } from '../constants';
+import { VEHICLES, PICKUP_LOCATIONS, DEFAULT_DRIVERS, DRIVERS_LIST } from '../constants';
 
 interface DispatchEntry {
     id?: number;
@@ -12,12 +12,20 @@ interface DispatchEntry {
     delivery: string; // Used as "Summary" (概要) in UI
 }
 
+interface DailyDriver {
+    id?: number;
+    date: string;
+    vehicleId: string;
+    driverName: string;
+}
+
 interface DispatchTableProps {
     date: string;
 }
 
 export default function DispatchTable({ date }: DispatchTableProps) {
     const [entries, setEntries] = useState<Record<string, DispatchEntry>>({});
+    const [dailyDrivers, setDailyDrivers] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -26,15 +34,28 @@ export default function DispatchTable({ date }: DispatchTableProps) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`/api/dispatch?date=${date}`);
-                if (res.ok) {
-                    const data: DispatchEntry[] = await res.json();
+                const [dispatchRes, driversRes] = await Promise.all([
+                    fetch(`/api/dispatch?date=${date}`),
+                    fetch(`/api/drivers?date=${date}`)
+                ]);
+
+                if (dispatchRes.ok) {
+                    const data: DispatchEntry[] = await dispatchRes.json();
                     const entryMap: Record<string, DispatchEntry> = {};
                     data.forEach(entry => {
                         const key = `${entry.vehicleId}-${entry.slotIndex}`;
                         entryMap[key] = entry;
                     });
                     setEntries(entryMap);
+                }
+
+                if (driversRes.ok) {
+                    const driversData: DailyDriver[] = await driversRes.json();
+                    const driverMap: Record<string, string> = {};
+                    driversData.forEach(d => {
+                        driverMap[d.vehicleId] = d.driverName;
+                    });
+                    setDailyDrivers(driverMap);
                 }
             } catch (error) {
                 console.error("Failed to fetch data", error);
@@ -63,6 +84,24 @@ export default function DispatchTable({ date }: DispatchTableProps) {
         }
     }, []);
 
+    const saveDriver = async (vehicleId: string, driverName: string) => {
+        setSaving(true);
+        try {
+            const res = await fetch('/api/drivers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date, vehicleId, driverName }),
+            });
+            if (res.ok) {
+                setDailyDrivers(prev => ({ ...prev, [vehicleId]: driverName }));
+            }
+        } catch (error) {
+            console.error("Failed to save driver", error);
+        } finally {
+            setSaving(false);
+        }
+    };
+
     // Handle input change
     const handleChange = (vehicleId: string, slotIndex: number, field: 'pickup' | 'delivery', value: string) => {
         const key = `${vehicleId}-${slotIndex}`;
@@ -88,6 +127,10 @@ export default function DispatchTable({ date }: DispatchTableProps) {
         if (entry) {
             saveEntry(entry);
         }
+    };
+
+    const getDriverName = (vehicleId: string) => {
+        return dailyDrivers[vehicleId] || DEFAULT_DRIVERS[vehicleId] || '';
     };
 
     if (loading) return <div className="text-center p-4 text-white">読み込み中...</div>;
@@ -136,8 +179,9 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                     {VEHICLES.map(vehicleId => (
                         <div key={vehicleId} className="flex items-center border-b last:border-b-0 h-16">
                             {/* Fixed Vehicle ID Column */}
-                            <div className="sticky left-0 z-10 w-10 flex-shrink-0 flex items-center justify-center bg-gray-100 h-full border-r font-bold text-gray-900 text-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                {vehicleId}
+                            <div className="sticky left-0 z-10 w-14 flex-shrink-0 flex flex-col items-center justify-center bg-gray-100 h-full border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                <span className="font-bold text-gray-900 text-sm">{vehicleId}</span>
+                                <span className="text-[10px] text-gray-600">{getDriverName(vehicleId)}</span>
                             </div>
 
                             {/* Slots */}
@@ -195,8 +239,11 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                     <tbody>
                         {VEHICLES.map(vehicleId => (
                             <tr key={vehicleId} className="border-b hover:bg-gray-50">
-                                <td className="p-3 font-bold border-r sticky left-0 bg-white z-10 text-center text-black shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                    {vehicleId}
+                                <td className="p-3 border-r sticky left-0 bg-white z-10 text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                    <div className="flex flex-col items-center">
+                                        <span className="font-bold text-black text-lg">{vehicleId}</span>
+                                        <span className="text-xs text-gray-600">{getDriverName(vehicleId)}</span>
+                                    </div>
                                 </td>
                                 {[0, 1, 2].map(slotIndex => (
                                     <td key={slotIndex} className="p-2 border-r">
@@ -208,6 +255,28 @@ export default function DispatchTable({ date }: DispatchTableProps) {
                     </tbody>
                 </table>
             </div>
+
+            {/* Driver Assignment Section */}
+            <div className="mt-8 bg-white p-4 rounded-lg shadow">
+                <h3 className="text-lg font-bold text-black mb-4">運転手変更</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {VEHICLES.map(vehicleId => (
+                        <div key={vehicleId} className="flex flex-col space-y-1">
+                            <label className="text-xs font-bold text-gray-600">{vehicleId}</label>
+                            <select
+                                className="border border-gray-300 rounded p-1 text-sm text-black bg-white"
+                                value={getDriverName(vehicleId)}
+                                onChange={(e) => saveDriver(vehicleId, e.target.value)}
+                            >
+                                {DRIVERS_LIST.map(driver => (
+                                    <option key={driver} value={driver}>{driver}</option>
+                                ))}
+                            </select>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <datalist id="pickup-locations">
                 {PICKUP_LOCATIONS.map(loc => (
                     <option key={loc.name} value={loc.name}>{loc.reading}</option>
